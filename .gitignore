@@ -1,0 +1,16 @@
+__pycache__
+.venv
+app/__pycache__
+app/routers/__pycache__
+app/database_draft.py
+batch_scripts/
+ubuntu/
+.dockerignore
+.env
+activate.bat
+dc_rebuild.bat
+env.py
+launchserv.bat
+logs.bat
+api.bat
+

@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+	ask_for_private_ip() {
+	    _count=0
+	    _ipv4_count=0
+	    _saveifs=$IFS;
+	    IFS=' ';
+	    while read -r _line; do
+	        set -- $_line;
+	        if [ "$2" == "lo" ]; then
+	            continue
+	        fi
+	        _ip=`echo $4 | cut -d'/' -f1`
+	        if [ "$_ip" == "$PRIVATE_ADDRESS" ]; then
+	          printf "'%s' appears to be valid\n" $PRIVATE_ADDRESS
+	          return
+	        fi
+	        if [ "$3" == "inet" ]; then
+	            _inet4_iface=$2
+	            _inet4_address=$_ip
+	
+	            _iface_names[$((_count))]=$2
+	            _iface_addrs[$((_count))]=$_ip
+	            let "_count += 1"
+	        fi
+	    done <<< "$(ip -4 -o addr && ip -6 -o addr)"
+	    IFS=$_saveifs;
+	
+	    if [ "$_count" -eq "0" ]; then
+	        echo >&2 "Error: The installer couldn't discover any valid network interfaces on this machine."
+	        echo >&2 "Check your network configuration and re-run this script again."
+	        exit 1
+	    elif [ "$_count" -eq "1" ]; then
+	        PRIVATE_ADDRESS=${_inet4_address}
+	        printf "The installer will use network interface '%s' (with IP address '%s')\n" ${_inet4_iface} ${_inet4_address}
+	        return
+	    fi
+	    printf "The installer was unable to automatically detect the private IP address of this machine.\n"
+	    printf "Please choose one of the following network interfaces:\n"
+	    for i in $(seq 0 $((_count-1))); do
+	        printf "[%d] %-5s\t%s\n" $i ${_iface_names[$i]} ${_iface_addrs[$i]}
+	    done
+	    while true; do
+	        printf "Enter desired number (0-%d): " $((_count-1))
+	        set +e
+	        read -t 60 chosen < /dev/tty
+	        set -e
+	        if [ -z "$chosen" ]; then
+	            continue
+	        fi
+	        if [ "$chosen" -ge "0" ] && [ "$chosen" -lt "$_count" ]; then
+	            PRIVATE_ADDRESS=${_iface_addrs[$chosen]}
+	            printf "The installer will use network interface '%s' (with IP address '%s').\n" ${_iface_names[$chosen]} $PRIVATE_ADDRESS
+	            return
+	        fi
+	    done
+	}
+	
+	discover_private_ip() {
+	    if [ -n "$PRIVATE_ADDRESS" ]; then
+	            printf "Validating local address supplied in parameter: '%s'\n" $PRIVATE_ADDRESS
+	            ask_for_private_ip
+	        return
+	    fi
+	
+	    ask_for_private_ip
+	}
+	
+
+	swarm_init() {
+	    docker swarm init --advertise-addr=${PRIVATE_ADDRESS}
+	}
+	
+
+	################################################################################
+	# Execution starts here
+	################################################################################
+	
+
+	printf "Determining local address\n"
+	discover_private_ip
+	
+
+	printf "Initializing Docker Swarm Mode...\n"
+	swarm_init
