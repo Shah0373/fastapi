@@ -18,6 +18,7 @@ services:
       context: db/
       dockerfile: Dockerfile
     hostname: ${database_hostname}
+    # we dont need the .env name as we can just name our services as we need the hostname to be 
     ports:
       - "${database_port}"
     environment:
@@ -27,7 +28,8 @@ services:
     env_file:
       - .env
     volumes:
-      - data:/data/db
+      - postgres-data:/var/lib/postgresql/data
+      # this will persist the data in /var/lib/postgresql/data locally so as to not lose all the data after a push
     networks:
       - fastapi-net
     deploy:
@@ -198,4 +200,4 @@ services:
       #- node.labels.fastapi.api_worker01 == true
 
 volumes:
-  data:
+  postgres-data:

@@ -15,11 +15,11 @@ FROM python:3.10
 
 # EXPOSE 8000
 
-# ADD requirements.txt /fastapi/
+# ADD requirements.txt ./
 
 # Install dependencies
-# COPY . .
-
 #RUN pip install --upgrade pip && pip install -r requirements.txt && apt update
 
-# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "5432" ]
+# COPY . .
+
+# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000" ]
